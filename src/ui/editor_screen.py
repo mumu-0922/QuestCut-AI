@@ -74,6 +74,7 @@ class EditorToolbar(QWidget):
     zoom_in_clicked = Signal()
     zoom_out_clicked = Signal()
     zoom_fit_clicked = Signal()
+    shortcuts_clicked = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -136,6 +137,12 @@ class EditorToolbar(QWidget):
         self.auto_enhance_btn.setFixedHeight(36)
         self.auto_enhance_btn.setStyleSheet(self._btn_style())
         layout.addWidget(self.auto_enhance_btn)
+
+        self.shortcuts_btn = QPushButton('?')
+        self.shortcuts_btn.setFixedSize(36, 36)
+        self.shortcuts_btn.setToolTip(tr('Keyboard Shortcuts'))
+        self.shortcuts_btn.setStyleSheet(self._btn_style())
+        layout.addWidget(self.shortcuts_btn)
         self.set_undo_enabled(False)
         self.set_redo_enabled(False)
 
@@ -175,6 +182,7 @@ class EditorToolbar(QWidget):
         self.redo_btn.setText(tr('Redo'))
         self.compare_btn.setText(tr('Compare'))
         self.auto_enhance_btn.setText(tr('Enhance'))
+        self.shortcuts_btn.setToolTip(tr('Keyboard Shortcuts'))
 
     def set_undo_enabled(self, enabled=None):
         self.undo_btn.setEnabled(bool(enabled))
@@ -191,6 +199,7 @@ class EditorToolbar(QWidget):
         self.zoom_in_btn.clicked.connect(self.zoom_in_clicked.emit)
         self.zoom_out_btn.clicked.connect(self.zoom_out_clicked.emit)
         self.zoom_fit_btn.clicked.connect(self.zoom_fit_clicked.emit)
+        self.shortcuts_btn.clicked.connect(self.shortcuts_clicked.emit)
 
 
 class EditorScreen(QWidget):

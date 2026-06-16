@@ -103,6 +103,7 @@ class EliteMainWindow(QMainWindow):
         self.editor_screen.toolbar.auto_enhance_clicked.connect(self._auto_enhance)
         self.editor_screen.toolbar.view_toggled.connect(self._on_view_toggled)
         self.editor_screen.toolbar.compare_toggled.connect(self._on_compare_toggled)
+        self.editor_screen.toolbar.shortcuts_clicked.connect(self._show_shortcuts)
         self.editor_screen.tool_changed.connect(self._on_tool_changed)
         self.editor_screen.brush_size_changed.connect(self._on_brush_size_changed)
         cp = self.editor_screen.control_panel
@@ -381,7 +382,18 @@ class EliteMainWindow(QMainWindow):
         c_shortcut = QShortcut(QKeySequence('C'), self, self._toggle_compare)
         c_shortcut.setContext(Qt.WidgetShortcut)
         help_shortcut = QShortcut(QKeySequence('?'), self, self._show_shortcuts)
-        help_shortcut.setContext(Qt.WindowShortcut)
+        help_shortcut.setContext(Qt.ApplicationShortcut)
+        help_shift_shortcut = QShortcut(QKeySequence('Shift+/'), self, self._show_shortcuts)
+        help_shift_shortcut.setContext(Qt.ApplicationShortcut)
+        help_f1_shortcut = QShortcut(QKeySequence.HelpContents, self, self._show_shortcuts)
+        help_f1_shortcut.setContext(Qt.ApplicationShortcut)
+
+    def keyPressEvent(self, event):
+        '''Fallback for keyboard layouts/input methods that do not trigger QShortcut('?').'''
+        if event.key() == Qt.Key_Question or event.text() in ('?', '？'):
+            self._show_shortcuts()
+            return None
+        super().keyPressEvent(event)
 
     def _show_shortcuts(self):
         '''Show keyboard shortcuts help dialog.'''

@@ -6,7 +6,8 @@ os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
 import numpy as np
 from PIL import Image
-from PySide6.QtCore import QSettings
+from PySide6.QtCore import QEvent, QSettings, Qt
+from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import QApplication
 
 from src.ui.elite_main_window import EliteMainWindow
@@ -81,6 +82,25 @@ class EditorSmokeTest(unittest.TestCase):
             with unittest.mock.patch('src.ui.elite_main_window.ShortcutsDialog.show_shortcuts') as show_shortcuts:
                 window._show_shortcuts()
                 show_shortcuts.assert_called_once_with(window)
+        finally:
+            window.close()
+
+    def test_toolbar_shortcuts_button_opens_shortcuts_dialog(self):
+        window = EliteMainWindow()
+        try:
+            with unittest.mock.patch.object(window, '_show_shortcuts') as show_shortcuts:
+                window.editor_screen.toolbar.shortcuts_btn.click()
+                show_shortcuts.assert_called_once()
+        finally:
+            window.close()
+
+    def test_question_mark_keypress_fallback_opens_shortcuts_dialog(self):
+        window = EliteMainWindow()
+        try:
+            event = QKeyEvent(QEvent.KeyPress, Qt.Key_Question, Qt.NoModifier, '?')
+            with unittest.mock.patch.object(window, '_show_shortcuts') as show_shortcuts:
+                window.keyPressEvent(event)
+                show_shortcuts.assert_called_once()
         finally:
             window.close()
 
