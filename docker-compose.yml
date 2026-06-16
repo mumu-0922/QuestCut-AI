@@ -1,0 +1,36 @@
+services:
+  questcut-ai:
+    build: .
+    image: questcut-ai:local
+    ports:
+      # Safe default: bind to VPS localhost. Put Nginx/Caddy with auth in front for public access.
+      - "127.0.0.1:7860:7860"
+    environment:
+      QUESTCUT_MAX_UPLOAD_MB: "25"
+    volumes:
+      - ./models:/app/models:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7860/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # GPU hosts can enable the block below after installing NVIDIA Container Toolkit.
+  # questcut-ai-gpu:
+  #   build: .
+  #   image: questcut-ai:local
+  #   ports:
+  #     - "7860:7860"
+  #   environment:
+  #     QUESTCUT_MAX_UPLOAD_MB: "25"
+  #     NVIDIA_VISIBLE_DEVICES: all
+  #   volumes:
+  #     - ./models:/app/models:ro
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: all
+  #             capabilities: [gpu]

@@ -21,10 +21,13 @@ QuestCut-AI 是一个基于 Python / PySide6 的桌面端 AI 抠图工具，支�
 ```text
 run.py                  # 应用入口
 src/core/               # 模型管理、GPU 检测、背景移除、人像模式
+src/services/           # 桌面/Web/Docker 共用抠图服务层
+src/web/                # FastAPI 本地 Web UI
 src/processing/         # 图像处理、遮罩、批量队列、导出
 src/ui/                 # PySide6 窗口、控件、画布、批量面板
 src/controllers/        # 批量与导出控制器
 src/utils/              # 常量、设置、i18n、校验、license 工具
+scripts/                # smoke、Web 启动、portable 打包脚本
 tests/                  # 单元与 UI smoke 测试
 models/MODEL_SOURCES.md # 模型来源、大小和校验值
 ```
@@ -81,10 +84,13 @@ QuestCut-AI is a Python / PySide6 desktop application for AI-powered background 
 ```text
 run.py                  # Application launcher
 src/core/               # Model manager, GPU helpers, remover, portrait mode
+src/services/           # Shared cutout service for desktop/Web/Docker
+src/web/                # FastAPI local Web UI
 src/processing/         # Image processing, masks, batch queue, export
 src/ui/                 # PySide6 windows, widgets, canvas, batch panels
 src/controllers/        # Batch and export controllers
 src/utils/              # Constants, settings, i18n, validation, license helpers
+scripts/                # Smoke, Web launcher, and portable packaging scripts
 tests/                  # Unit and UI smoke tests
 models/MODEL_SOURCES.md # Model source URLs, sizes, and checksums
 ```
@@ -138,12 +144,15 @@ QuestCut-AI is designed to support three delivery modes from the same inference 
    - The zip includes `QuestCut-AI.exe` and `models/`, so users can unzip and run offline.
 
 2. **Local Web UI / 本地网页 UI**
-   - Planned shape: FastAPI backend + browser UI on `http://127.0.0.1:7860`.
-   - It will reuse `src/services/cutout_service.py` instead of duplicating inference logic.
+   - Run command: `python scripts/run_web.py --host 127.0.0.1 --port 7860`
+   - Open `http://127.0.0.1:7860` in a browser. The FastAPI backend reuses `src/services/cutout_service.py`.
+   - API endpoints: `GET /health`, `GET /api/models`, `POST /api/remove-background`.
 
 3. **Docker / VPS deployment / Docker 部署**
-   - Planned shape: Dockerfile + docker-compose for users with large-memory VPS or GPU servers.
-   - The same web backend will be used; deployment must enforce upload size, file type, timeout, and temporary-file cleanup limits.
+   - Run command: `docker compose up --build`
+   - Mount local models into `/app/models` with the provided `docker-compose.yml`.
+   - Safe default binds to `127.0.0.1:7860`; expose publicly only behind Nginx/Caddy auth.
+   - Set `QUESTCUT_MAX_UPLOAD_MB` to control upload limits. Use a large-memory VPS; GPU hosts also need NVIDIA Container Toolkit.
 
 Current shared inference boundary:
 

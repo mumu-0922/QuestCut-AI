@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QuestCut-AI Web</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; }
+    body { margin: 0; background: #0f0f10; color: #f8fafc; }
+    main { max-width: 920px; margin: 40px auto; padding: 24px; }
+    .card { background: #18181b; border: 1px solid #27272a; border-radius: 18px; padding: 24px; box-shadow: 0 20px 60px #0008; }
+    h1 { margin: 0 0 8px; }
+    p { color: #a1a1aa; }
+    label { display: block; margin: 16px 0 8px; font-weight: 700; }
+    input, select, button { width: 100%; box-sizing: border-box; border-radius: 12px; border: 1px solid #3f3f46; background: #09090b; color: #fafafa; padding: 12px; }
+    button { margin-top: 18px; background: #4f46e5; border: 0; cursor: pointer; font-weight: 800; }
+    button:disabled { opacity: .6; cursor: wait; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 24px; }
+    img { max-width: 100%; border-radius: 14px; background: repeating-conic-gradient(#ddd 0% 25%, #aaa 0% 50%) 50% / 24px 24px; }
+    .hint { font-size: 13px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } main { margin: 0; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <h1>QuestCut-AI Web</h1>
+      <p>本地网页抠图界面。图片只发送到当前运行的本地服务或你自己的 Docker 服务。</p>
+      <form id="form">
+        <label>图片</label>
+        <input id="file" name="file" type="file" accept="image/png,image/jpeg,image/webp,image/bmp,image/tiff,image/gif" required />
+        <label>模型</label>
+        <select id="model" name="model_key"></select>
+        <label>输出格式</label>
+        <select name="output_format">
+          <option value="png">PNG（透明）</option>
+          <option value="webp">WebP</option>
+          <option value="jpg">JPG（白底）</option>
+        </select>
+        <button id="run" type="submit">移除背景</button>
+      </form>
+      <p id="status" class="hint">Ready</p>
+      <div class="grid">
+        <section><h3>原图</h3><img id="original" alt="Original preview" /></section>
+        <section><h3>结果</h3><img id="result" alt="Result preview" /></section>
+      </div>
+    </div>
+  </main>
+  <script>
+    const modelSelect = document.querySelector('#model');
+    const statusEl = document.querySelector('#status');
+    const original = document.querySelector('#original');
+    const result = document.querySelector('#result');
+    const button = document.querySelector('#run');
+
+    fetch('/api/models').then(r => r.json()).then(data => {
+      modelSelect.innerHTML = data.models.map(m => `<option value="${m.key}">${m.display_name} - ${m.size || ''}</option>`).join('');
+    }).catch(() => { statusEl.textContent = '模型列表加载失败'; });
+
+    document.querySelector('#file').addEventListener('change', event => {
+      const file = event.target.files[0];
+      if (file) original.src = URL.createObjectURL(file);
+    });
+
+    document.querySelector('#form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const file = document.querySelector('#file').files[0];
+      if (!file) return;
+      button.disabled = true;
+      statusEl.textContent = '处理中...';
+      result.removeAttribute('src');
+      try {
+        const body = new FormData(event.currentTarget);
+        const resp = await fetch('/api/remove-background', { method: 'POST', body });
+        if (!resp.ok) throw new Error((await resp.json()).detail || resp.statusText);
+        const blob = await resp.blob();
+        result.src = URL.createObjectURL(blob);
+        statusEl.textContent = '完成，可右键保存结果图。';
+      } catch (err) {
+        statusEl.textContent = '失败：' + err.message;
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
