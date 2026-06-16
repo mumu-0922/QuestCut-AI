@@ -20,6 +20,11 @@ class DistributionFilesTest(unittest.TestCase):
         self.assertIn('./models:/app/models:ro', compose)
         self.assertIn('*.onnx', dockerignore)
 
+    def test_run_web_adds_repo_root_to_python_path(self):
+        run_web = self.read('scripts/run_web.py')
+        self.assertIn('sys.path.insert(0, str(ROOT))', run_web)
+        self.assertIn('app_dir=str(ROOT)', run_web)
+
     def test_readme_lists_three_distribution_commands(self):
         readme = self.read('README.md')
         self.assertIn('python scripts/build_portable.py --version 1.0.1', readme)
