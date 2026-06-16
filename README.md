@@ -125,3 +125,28 @@ models/modnet/modnet.onnx
 ### Packaging
 
 The Windows installer script is `install_script.iss`. Build `QuestCut-AI.exe` first, ensure `models/` exists beside the build input, then compile the installer with Inno Setup.
+
+---
+
+## Distribution Roadmap / 分发路线
+
+QuestCut-AI is designed to support three delivery modes from the same inference core:
+
+1. **Portable desktop build / 免安装桌面版**
+   - Build command: `python scripts/build_portable.py --version 1.0.1`
+   - Output: `dist/release/QuestCut-AI-Portable-v1.0.1.zip`
+   - The zip includes `QuestCut-AI.exe` and `models/`, so users can unzip and run offline.
+
+2. **Local Web UI / 本地网页 UI**
+   - Planned shape: FastAPI backend + browser UI on `http://127.0.0.1:7860`.
+   - It will reuse `src/services/cutout_service.py` instead of duplicating inference logic.
+
+3. **Docker / VPS deployment / Docker 部署**
+   - Planned shape: Dockerfile + docker-compose for users with large-memory VPS or GPU servers.
+   - The same web backend will be used; deployment must enforce upload size, file type, timeout, and temporary-file cleanup limits.
+
+Current shared inference boundary:
+
+```text
+src/services/cutout_service.py
+```
