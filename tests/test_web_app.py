@@ -59,7 +59,7 @@ class WebAppTest(unittest.TestCase):
         self.assertEqual(models[0]['key'], 'birefnet')
         index = self.client.get('/')
         self.assertEqual(index.status_code, 200)
-        for text in ('QuestCut-AI Web', '批量处理', '下载当前', '批量 ZIP'):
+        for text in ('免费离线 AI 抠图工具', '最佳质量', '你的图片绝对安全', '批量 ZIP'):
             self.assertIn(text, index.text)
 
     def test_normalize_filename_is_header_safe_ascii(self):
