@@ -1,0 +1,43 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+
+# Local tooling caches
+.code-abyss/
+.codex/
+.agents/
+
+# Build/package output
+build/
+dist/
+*.spec
+
+# Editor/OS noise
+.DS_Store
+Thumbs.db
+*.bak
+
+# Large bundled model binaries (document sources instead)
+*.onnx
+*.pth
+*.pt
+*.bin
+*.safetensors
+*.tflite
+
+# Decompiled / installed application artifacts
+_decompiled_stdlib_backup/
+_internal/
+*.exe
+*.dll
+*.pdb
+*.winmd
+*.pri
+
+# Local accidental scratch files
+'

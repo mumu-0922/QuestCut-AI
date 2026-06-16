@@ -1,0 +1,124 @@
+# QuestCut-AI 1.0.1 - Runtime Dependencies
+# Python 3.10 / 3.11
+
+# Core GUI Framework
+PySide6
+
+# AI / ML Inference
+onnxruntime-gpu[cuda,cudnn]==1.23.2
+numpy==1.26.4
+scipy==1.14.1
+
+# Background Removal
+rembg==2.0.69
+pymatting==1.1.15
+
+# Image Processing
+Pillow==10.1.0
+opencv-python-headless
+
+# Data Validation
+pydantic==2.12.5
+pydantic-core
+annotated-types
+typing-inspection
+
+# Data Serialization
+jsonschema==4.23.0
+jsonschema-specifications
+attrs==24.2.0
+referencing
+rpds-py
+
+# Network / HTTP
+requests==2.31.0
+aiohttp
+urllib3
+certifi
+charset-normalizer
+idna
+multidict
+yarl
+frozenlist
+aiosignal
+aiohappyeyeballs
+async-timeout
+propcache
+
+# HTTP Server (Gradio Web UI)
+fastapi
+starlette
+uvicorn
+httpx
+httpcore
+h11
+sniffio
+anyio
+python-multipart
+
+# Gradio (Web UI)
+gradio
+gradio-client
+
+# Security
+cryptography==41.0.3
+cffi
+pycparser
+
+# CLI Tools
+typer
+click
+shellingham
+rich
+markdown-it-py
+mdurl
+pygments
+
+# File System
+fsspec
+pooch==1.9.0
+packaging
+aiofiles
+orjson
+
+# Configuration
+tomlkit
+python-dotenv
+
+# Version Handling
+semantic-version==2.10.0
+
+# Utilities
+tqdm==4.66.1
+colorama
+pydub
+more-itertools
+
+# Template Engine
+jinja2
+markupsafe
+
+# Git
+gitpython
+gitdb
+smmap
+
+# Compilation / Performance
+numba
+llvmlite
+
+# Platform
+pyreadline3==3.5.4
+platformdirs
+filelock
+
+# Package Metadata
+importlib-metadata==8.5.0
+importlib-resources
+zipp
+
+# Misc
+defusedxml
+itsdangerous==2.2.0
+psutil
+tzdata
