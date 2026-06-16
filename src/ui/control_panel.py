@@ -5,7 +5,7 @@ Settings panels for background, shadow, export, etc.
 '''
 import logging
 from typing import Optional, Tuple, Dict, Any, List
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QPushButton, QLabel, QSlider, QComboBox, QSpinBox, QCheckBox, QLineEdit, QColorDialog, QFileDialog, QFrame, QGroupBox, QButtonGroup, QGridLayout, QSizePolicy, QProgressBar
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QPushButton, QLabel, QSlider, QComboBox, QSpinBox, QCheckBox, QLineEdit, QColorDialog, QFileDialog, QFrame, QGroupBox, QButtonGroup, QGridLayout, QSizePolicy, QProgressBar, QDialog, QTextBrowser
 from PySide6.QtCore import Qt, Signal, Slot, QSize, QTimer
 from PySide6.QtGui import QColor, QPalette
 from ..resources.icons import get_icon

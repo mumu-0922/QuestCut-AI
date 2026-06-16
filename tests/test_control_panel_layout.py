@@ -1,11 +1,13 @@
 import os
 import unittest
+import unittest.mock
 
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
-from PySide6.QtWidgets import QApplication, QSizePolicy
+from PySide6.QtWidgets import QApplication, QLabel, QSizePolicy
 
 from src.ui.control_panel import ControlPanel
+from src.ui.shortcuts_dialog import ShortcutsDialog
 
 
 class ControlPanelLayoutTest(unittest.TestCase):
@@ -68,6 +70,27 @@ class ControlPanelLayoutTest(unittest.TestCase):
                 self.assertEqual(button.sizePolicy().verticalPolicy(), QSizePolicy.Fixed)
         finally:
             panel.close()
+
+    def test_model_comparison_dialog_imports_qdialog_and_opens(self):
+        panel = ControlPanel()
+        try:
+            with unittest.mock.patch('src.ui.control_panel.QDialog.exec', return_value=0) as exec_dialog:
+                panel._show_model_comparison()
+                exec_dialog.assert_called_once()
+        finally:
+            panel.close()
+
+    def test_shortcuts_dialog_has_readable_fixed_layout(self):
+        dialog = ShortcutsDialog()
+        try:
+            self.assertGreaterEqual(dialog.minimumWidth(), 720)
+            self.assertGreaterEqual(dialog.minimumHeight(), 620)
+            key_labels = [label for label in dialog.findChildren(QLabel) if label.text() == 'Ctrl+O']
+            self.assertTrue(key_labels)
+            self.assertEqual(key_labels[0].width(), 150)
+            self.assertGreaterEqual(key_labels[0].height(), 32)
+        finally:
+            dialog.close()
 
 
 if __name__ == '__main__':
