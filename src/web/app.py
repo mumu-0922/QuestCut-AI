@@ -6,6 +6,7 @@ model loading and background removal stay in src.services.cutout_service.
 from __future__ import annotations
 
 import os
+import zipfile
 from io import BytesIO
 from pathlib import Path
 
@@ -96,16 +97,52 @@ def _flatten_for_opaque_format(image: Image.Image, fmt: str) -> Image.Image:
     return background
 
 
-def _stream_image(image: Image.Image, fmt: str, filename: str) -> StreamingResponse:
+def _encode_image(image: Image.Image, fmt: str) -> bytes:
     out = BytesIO()
     save_image = _flatten_for_opaque_format(image, fmt)
     save_image.save(out, "JPEG" if fmt in {"jpg", "jpeg"} else fmt.upper())
-    out.seek(0)
+    return out.getvalue()
+
+
+def _process_upload_data(
+    filename: str | None,
+    data: bytes,
+    model_key: str,
+    output_format: str,
+    service: CutoutService,
+) -> tuple[str, bytes, str]:
+    fmt = service.validate_output_format(output_format)
+    service.validate_model(model_key)
+    with Image.open(BytesIO(data)) as probe:
+        image = probe.convert("RGBA")
+    result = service.remove_background(image, model_key=model_key)
+    output_name = f"{_normalize_filename(filename)}_nobg.{fmt}"
+    return output_name, _encode_image(result.image, fmt), MIME_BY_FORMAT[fmt]
+
+
+def _stream_bytes(content: bytes, media_type: str, filename: str) -> StreamingResponse:
     return StreamingResponse(
-        out,
-        media_type=MIME_BY_FORMAT[fmt],
+        BytesIO(content),
+        media_type=media_type,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+def _unique_zip_name(used: set[str], filename: str) -> str:
+    path = Path(filename)
+    candidate = filename
+    index = 1
+    while candidate in used:
+        candidate = f"{path.stem}_{index}{path.suffix}"
+        index += 1
+    used.add(candidate)
+    return candidate
+
+
+def _error_detail(exc: Exception) -> str:
+    if isinstance(exc, HTTPException):
+        return str(exc.detail)
+    return str(exc) or type(exc).__name__
 
 
 @router.get("/health")
@@ -127,11 +164,14 @@ async def remove_background(
 ):
     data = await _read_upload(file)
     try:
-        fmt = service.validate_output_format(output_format)
-        service.validate_model(model_key)
-        with Image.open(BytesIO(data)) as probe:
-            image = probe.convert("RGBA")
-        result = await run_in_threadpool(service.remove_background, image, model_key=model_key)
+        output_name, content, media_type = await run_in_threadpool(
+            _process_upload_data,
+            file.filename,
+            data,
+            model_key,
+            output_format,
+            service,
+        )
     except UnidentifiedImageError as exc:
         raise HTTPException(status_code=400, detail="Invalid image file") from exc
     except ValueError as exc:
@@ -139,8 +179,47 @@ async def remove_background(
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Processing failed: {exc}") from exc
 
-    output_name = f"{_normalize_filename(file.filename)}_nobg.{fmt}"
-    return _stream_image(result.image, fmt, output_name)
+    return _stream_bytes(content, media_type, output_name)
+
+
+@router.post("/api/remove-background-batch")
+async def remove_background_batch(
+    files: list[UploadFile] = File(...),
+    model_key: str = Form("birefnet"),
+    output_format: str = Form("png"),
+    service: CutoutService = Depends(_service),
+):
+    if not files:
+        raise HTTPException(status_code=400, detail="No files uploaded")
+
+    used_names: set[str] = set()
+    errors: list[str] = []
+    written = 0
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for file in files:
+            try:
+                data = await _read_upload(file)
+                output_name, content, _ = await run_in_threadpool(
+                    _process_upload_data,
+                    file.filename,
+                    data,
+                    model_key,
+                    output_format,
+                    service,
+                )
+                zf.writestr(_unique_zip_name(used_names, output_name), content)
+                written += 1
+            except Exception as exc:  # Keep batch jobs useful when one file fails.
+                errors.append(f"{file.filename or 'image'}: {_error_detail(exc)}")
+        if errors:
+            zf.writestr("errors.txt", "\n".join(errors))
+
+    if written == 0:
+        raise HTTPException(status_code=400, detail="All files failed: " + "; ".join(errors))
+
+    zip_buffer.seek(0)
+    return _stream_bytes(zip_buffer.getvalue(), "application/zip", "QuestCut-AI-batch.zip")
 
 
 @router.get("/", response_class=HTMLResponse)

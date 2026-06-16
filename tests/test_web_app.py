@@ -1,4 +1,5 @@
 import unittest
+import zipfile
 from io import BytesIO
 
 from fastapi.testclient import TestClient
@@ -58,7 +59,8 @@ class WebAppTest(unittest.TestCase):
         self.assertEqual(models[0]['key'], 'birefnet')
         index = self.client.get('/')
         self.assertEqual(index.status_code, 200)
-        self.assertIn('QuestCut-AI Web', index.text)
+        for text in ('QuestCut-AI Web', '批量处理', '下载当前', '批量 ZIP'):
+            self.assertIn(text, index.text)
 
     def test_normalize_filename_is_header_safe_ascii(self):
         self.assertEqual(_normalize_filename('sample image.png'), 'sample_image')
@@ -75,6 +77,39 @@ class WebAppTest(unittest.TestCase):
         self.assertIn('sample_nobg.png', resp.headers['content-disposition'])
         with Image.open(BytesIO(resp.content)) as image:
             self.assertEqual(image.mode, 'RGBA')
+
+    def test_batch_remove_background_returns_zip(self):
+        resp = self.client.post(
+            '/api/remove-background-batch',
+            data={'model_key': 'birefnet', 'output_format': 'png'},
+            files=[
+                ('files', ('first.png', self.make_png(), 'image/png')),
+                ('files', ('second.png', self.make_png(), 'image/png')),
+            ],
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.headers['content-type'], 'application/zip')
+        with zipfile.ZipFile(BytesIO(resp.content)) as zf:
+            names = set(zf.namelist())
+        self.assertIn('first_nobg.png', names)
+        self.assertIn('second_nobg.png', names)
+
+    def test_batch_keeps_successes_and_writes_errors_txt(self):
+        resp = self.client.post(
+            '/api/remove-background-batch',
+            data={'model_key': 'birefnet', 'output_format': 'png'},
+            files=[
+                ('files', ('good.png', self.make_png(), 'image/png')),
+                ('files', ('bad.txt', b'not image', 'text/plain')),
+            ],
+        )
+        self.assertEqual(resp.status_code, 200)
+        with zipfile.ZipFile(BytesIO(resp.content)) as zf:
+            names = set(zf.namelist())
+            errors = zf.read('errors.txt').decode('utf-8')
+        self.assertIn('good_nobg.png', names)
+        self.assertIn('errors.txt', names)
+        self.assertIn('bad.txt', errors)
 
     def test_rejects_bad_model_and_type(self):
         bad_model = self.client.post(

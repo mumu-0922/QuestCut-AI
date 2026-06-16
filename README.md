@@ -40,12 +40,20 @@ python scripts/run_web.py --host 127.0.0.1 --port 7860
 http://127.0.0.1:7860
 ```
 
+Web 功能：
+
+- 多图选择和拖拽导入。
+- 图片队列切换预览。
+- 单张处理、批量处理。
+- 下载当前结果，或直接生成批量 ZIP。
+
 API：
 
 ```text
 GET  /health
 GET  /api/models
 POST /api/remove-background
+POST /api/remove-background-batch
 ```
 
 #### 3. Docker / VPS
@@ -164,12 +172,20 @@ Open:
 http://127.0.0.1:7860
 ```
 
+Web features:
+
+- Multi-file picker and drag-and-drop import.
+- Queue-based preview switching.
+- Single-image processing and batch processing.
+- Download current result or generate a batch ZIP.
+
 API:
 
 ```text
 GET  /health
 GET  /api/models
 POST /api/remove-background
+POST /api/remove-background-batch
 ```
 
 #### 3. Docker / VPS
