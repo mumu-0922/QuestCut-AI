@@ -78,21 +78,38 @@ def get_device(use_gpu=True):
 _onnx_dlls_preloaded = False
 _dll_directory_handles = []
 
-def _add_nvidia_dll_directories():
-    """Expose pip-installed NVIDIA DLL directories to Windows' loader."""
-    import os
+def _nvidia_roots():
+    """Return NVIDIA package roots for source and PyInstaller-frozen layouts."""
+    import sys
     import sysconfig
+    roots = []
+    if getattr(sys, "frozen", False):
+        roots.extend([
+            Path(getattr(sys, "_MEIPASS", "")) / "nvidia",
+            Path(sys.executable).resolve().parent / "_internal" / "nvidia",
+            Path(sys.executable).resolve().parent / "nvidia",
+        ])
     site_packages = Path(sysconfig.get_paths().get("purelib", ""))
-    nvidia_root = site_packages / "nvidia"
-    dll_dirs = [
-        nvidia_root / "cublas" / "bin",
-        nvidia_root / "cuda_runtime" / "bin",
-        nvidia_root / "cuda_nvrtc" / "bin",
-        nvidia_root / "cudnn" / "bin",
-        nvidia_root / "cufft" / "bin",
-        nvidia_root / "curand" / "bin",
-        nvidia_root / "nvjitlink" / "bin",
-    ]
+    roots.append(site_packages / "nvidia")
+    seen = set()
+    result = []
+    for root in roots:
+        try:
+            resolved = root.resolve()
+        except Exception:
+            resolved = root
+        if resolved in seen or not resolved.is_dir():
+            continue
+        seen.add(resolved)
+        result.append(resolved)
+    return result
+
+
+def _add_nvidia_dll_directories():
+    """Expose bundled or pip-installed NVIDIA DLL directories to Windows' loader."""
+    import os
+    subdirs = ("cublas", "cuda_runtime", "cuda_nvrtc", "cudnn", "cufft", "curand", "nvjitlink")
+    dll_dirs = [root / subdir / "bin" for root in _nvidia_roots() for subdir in subdirs]
     existing_path = os.environ.get("PATH", "")
     prepend = []
     for dll_dir in dll_dirs:
@@ -107,18 +124,47 @@ def _add_nvidia_dll_directories():
                 logger.debug("Could not add DLL directory %s: %s", path, exc)
     if prepend:
         os.environ["PATH"] = os.pathsep.join(prepend + [existing_path])
+    return dll_dirs
+
+
+def _preload_bundled_nvidia_dlls():
+    """Load bundled CUDA/cuDNN DLLs explicitly for frozen apps."""
+    import ctypes
+    patterns = (
+        "cuda_runtime/bin/cudart*.dll",
+        "nvjitlink/bin/nvJitLink*.dll",
+        "cuda_nvrtc/bin/nvrtc*.dll",
+        "curand/bin/curand*.dll",
+        "cufft/bin/cufft*.dll",
+        "cublas/bin/cublas*.dll",
+        "cudnn/bin/cudnn*.dll",
+    )
+    for root in _nvidia_roots():
+        for pattern in patterns:
+            for dll in sorted(root.glob(pattern)):
+                try:
+                    ctypes.WinDLL(str(dll))
+                except Exception as exc:
+                    logger.debug("Could not preload NVIDIA DLL %s: %s", dll, exc)
+
 
 def preload_onnx_gpu_dlls():
-    """Preload pip-installed CUDA/cuDNN DLLs for ONNX Runtime on Windows."""
+    """Preload bundled or pip-installed CUDA/cuDNN DLLs for ONNX Runtime on Windows."""
     global _onnx_dlls_preloaded
     if _onnx_dlls_preloaded:
         return
     try:
         _add_nvidia_dll_directories()
-        import onnxruntime as ort
-        preload = getattr(ort, "preload_dlls", None)
-        if callable(preload):
-            preload(cuda=True, cudnn=True, msvc=True, directory="")
+        _preload_bundled_nvidia_dlls()
+        import sys
+        if not getattr(sys, "frozen", False):
+            import onnxruntime as ort
+            preload = getattr(ort, "preload_dlls", None)
+            if callable(preload):
+                try:
+                    preload(cuda=True, cudnn=True, msvc=True, directory="")
+                except Exception as exc:
+                    logger.debug("ONNX Runtime preload_dlls fallback ignored: %s", exc)
         _onnx_dlls_preloaded = True
     except Exception as exc:
         logger.warning("Failed to preload ONNX Runtime GPU DLLs: %s", exc)

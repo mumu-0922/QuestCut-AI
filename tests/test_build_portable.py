@@ -19,6 +19,22 @@ class BuildPortableTest(unittest.TestCase):
             missing = build_portable.ensure_models(Path(tmp), skip=True)
             self.assertEqual(len(missing), len(build_portable.REQUIRED_MODEL_FILES))
 
+    def test_collect_nvidia_cuda_binaries_preserves_package_layout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            site = Path(tmp)
+            dll = site / 'nvidia' / 'cublas' / 'bin' / 'cublas64_12.dll'
+            dll.parent.mkdir(parents=True)
+            dll.write_bytes(b'dll')
+
+            binaries = build_portable.collect_nvidia_cuda_binaries(site)
+
+            self.assertEqual(binaries, [(dll, Path('nvidia/cublas/bin'))])
+
+    def test_pyinstaller_add_binary_arg_uses_platform_separator(self):
+        arg = build_portable.pyinstaller_add_binary_arg(Path('a.dll'), Path('nvidia/cublas/bin'))
+        self.assertIn(str(Path('a.dll')), arg)
+        self.assertIn(str(Path('nvidia/cublas/bin')), arg)
+
     def test_create_zip_contains_portable_folder(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

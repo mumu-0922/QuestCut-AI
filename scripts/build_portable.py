@@ -6,9 +6,11 @@ The script intentionally builds an onedir app instead of an installer. It copies
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
+import sysconfig
 import zipfile
 from pathlib import Path
 
@@ -19,6 +21,31 @@ REQUIRED_MODEL_FILES = [
     Path("models/rembg/birefnet-portrait.onnx"),
     Path("models/modnet/modnet.onnx"),
 ]
+COPY_METADATA_PACKAGES = ["pymatting", "rembg"]
+
+
+def site_packages_dir() -> Path:
+    return Path(sysconfig.get_paths()["purelib"])
+
+
+def pyinstaller_binary_separator() -> str:
+    return ";" if os.name == "nt" else ":"
+
+
+def collect_nvidia_cuda_binaries(site_packages: Path | None = None) -> list[tuple[Path, Path]]:
+    """Return pip-installed NVIDIA CUDA/cuDNN DLLs to bundle with PyInstaller."""
+    root = (site_packages or site_packages_dir()) / "nvidia"
+    if not root.is_dir():
+        return []
+    binaries = []
+    for dll in sorted(root.glob("*/bin/*.dll")):
+        relative_parent = dll.parent.relative_to(root.parent)
+        binaries.append((dll, relative_parent))
+    return binaries
+
+
+def pyinstaller_add_binary_arg(source: Path, dest: Path) -> str:
+    return f"{source}{pyinstaller_binary_separator()}{dest}"
 
 
 def parse_args():
@@ -73,8 +100,12 @@ def run_pyinstaller(root: Path):
         str(dist_dir),
         "--workpath",
         str(build_dir),
-        "run.py",
     ]
+    for package in COPY_METADATA_PACKAGES:
+        cmd.extend(["--copy-metadata", package])
+    for source, dest in collect_nvidia_cuda_binaries():
+        cmd.extend(["--add-binary", pyinstaller_add_binary_arg(source, dest)])
+    cmd.append("run.py")
     subprocess.run(cmd, cwd=root, check=True)
     exe = work_dir / f"{APP_NAME}.exe"
     if not exe.exists():
@@ -101,6 +132,7 @@ def write_release_notes(work_dir: Path, version: str):
         "3. Click Remove Background and save the result.\n"
         "\n"
         "This portable build bundles ONNX models under ./models and works offline.\n"
+        "CUDA/cuDNN runtime DLLs are bundled when available during packaging.\n"
         "Do not remove the models folder.\n",
         encoding="utf-8",
     )
