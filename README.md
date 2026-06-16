@@ -6,20 +6,100 @@
 
 ## 中文
 
-QuestCut-AI 是一个基于 Python / PySide6 的桌面端 AI 抠图工具，支持单张与批量移除背景、透明 PNG 快速保存、背景/阴影/边缘/位置调整，以及简体中文和英文界面切换。
+QuestCut-AI 是一个离线优先的 AI 抠图工具，支持桌面 GUI、本地 Web UI 和 Docker/VPS 部署。核心推理共用同一套服务层，支持 BiRefNet、BiRefNet Portrait 和 MODNet 模型，适合单张抠图、批量处理、透明 PNG 导出和人像柔边处理。
 
-### 功能特性
+### 主要功能
 
-- AI 背景移除：BiRefNet 通用模型、BiRefNet 人像模型、MODNet 人像柔边模型。
-- 批量处理：支持多图导入、处理状态保留、失败重试和批量保存。
-- 编辑能力：背景色/渐变/图片背景、阴影、边缘锐化/扩展/羽化、智能裁剪、撤销/重做。
-- GPU 加速：支持 ONNX Runtime CUDA，GPU 初始化失败时自动回退 CPU。
-- 双语界面：English / 简体中文。
+- **AI 背景移除**：BiRefNet 通用模型、BiRefNet 人像模型、MODNet 人像柔边模型。
+- **批量处理**：多图导入、状态保留、失败重试、批量保存。
+- **编辑增强**：背景色/渐变/图片背景、阴影、边缘锐化/扩展/羽化、智能裁剪、撤销/重做。
+- **GPU 加速**：支持 ONNX Runtime CUDA；GPU 初始化失败时自动回退 CPU。
+- **双语界面**：English / 简体中文。
+- **三种分发**：免安装离线版、本地网页 UI、Docker/VPS 部署。
+
+### 使用方式
+
+#### 1. 桌面 GUI
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+python run.py
+```
+
+#### 2. 本地 Web UI
+
+```bash
+python scripts/run_web.py --host 127.0.0.1 --port 7860
+```
+
+然后浏览器打开：
+
+```text
+http://127.0.0.1:7860
+```
+
+API：
+
+```text
+GET  /health
+GET  /api/models
+POST /api/remove-background
+```
+
+#### 3. Docker / VPS
+
+```bash
+docker compose up --build
+```
+
+默认只绑定本机：
+
+```text
+127.0.0.1:7860
+```
+
+如需公网访问，建议放在 Nginx/Caddy 后面，并加访问控制。模型目录通过 `docker-compose.yml` 挂载到容器：
+
+```text
+./models:/app/models:ro
+```
+
+### 免安装离线版打包
+
+```bash
+python scripts/build_portable.py --version 1.0.1
+```
+
+输出：
+
+```text
+dist/release/QuestCut-AI-Portable-v1.0.1.zip
+```
+
+压缩包会包含 `QuestCut-AI.exe` 和 `models/`，用户解压后可离线运行。
+
+### 模型文件
+
+ONNX 模型体积较大，不提交到 Git。请按文档下载并放入：
+
+```text
+models/rembg/birefnet-general.onnx
+models/rembg/birefnet-portrait.onnx
+models/modnet/modnet.onnx
+```
+
+来源、大小、MD5/SHA256 见：
+
+```text
+models/MODEL_SOURCES.md
+```
 
 ### 项目结构
 
 ```text
-run.py                  # 应用入口
+run.py                  # 桌面应用入口
 src/core/               # 模型管理、GPU 检测、背景移除、人像模式
 src/services/           # 桌面/Web/Docker 共用抠图服务层
 src/web/                # FastAPI 本地 Web UI
@@ -32,7 +112,38 @@ tests/                  # 单元与 UI smoke 测试
 models/MODEL_SOURCES.md # 模型来源、大小和校验值
 ```
 
-### 安装与运行
+### 测试
+
+```bash
+python3 -m py_compile run.py $(find src -name '*.py') tests/*.py scripts/*.py
+.venv\Scripts\python.exe -m unittest discover -s tests -v
+.venv\Scripts\python.exe scripts\smoke_checks.py
+```
+
+### 常见问题
+
+- **卡在 0%**：通常是模型缺失或路径不对，检查 `models/` 是否按上面结构放置。
+- **GPU 报 CUBLAS/CUDA 错误**：程序会自动回退 CPU；需要 GPU 时检查显卡驱动、CUDA/cuDNN 和 `onnxruntime-gpu`。
+- **VPS 内存不够**：BiRefNet 模型约 928MiB/个，部署建议使用大内存机器；低配机器优先用 MODNet 或 CPU 小批量处理。
+
+---
+
+## English
+
+QuestCut-AI is an offline-first AI background remover with a desktop GUI, local Web UI, and Docker/VPS deployment mode. All entrypoints share the same inference service layer and support BiRefNet, BiRefNet Portrait, and MODNet for single-image editing, batch processing, transparent PNG export, and portrait matting.
+
+### Features
+
+- **AI background removal** with BiRefNet General, BiRefNet Portrait, and MODNet portrait matting.
+- **Batch workflow** with persistent item state, failed-item retry, and batch export.
+- **Editing tools** for solid/gradient/image backgrounds, shadows, edge refinement, smart crop, undo, and redo.
+- **GPU acceleration** through ONNX Runtime CUDA with automatic CPU fallback.
+- **Bilingual UI**: English and Simplified Chinese.
+- **Three delivery modes**: portable offline build, local Web UI, and Docker/VPS deployment.
+
+### Usage
+
+#### 1. Desktop GUI
 
 ```bash
 python -m venv .venv
@@ -41,23 +152,61 @@ pip install -r requirements.txt
 python run.py
 ```
 
-### 测试
+#### 2. Local Web UI
 
 ```bash
-python3 -m py_compile run.py $(find src -name '*.py') tests/*.py scripts/smoke_checks.py
-.venv\Scripts\python.exe -m unittest discover -s tests -v
-.venv\Scripts\python.exe scripts\smoke_checks.py
+python scripts/run_web.py --host 127.0.0.1 --port 7860
 ```
 
-### 模型文件
-
-ONNX 模型体积较大，不直接提交到 Git。当前模型来源、文件大小、MD5/SHA256 见：
+Open:
 
 ```text
-models/MODEL_SOURCES.md
+http://127.0.0.1:7860
 ```
 
-如需打包离线版，请把模型放入：
+API:
+
+```text
+GET  /health
+GET  /api/models
+POST /api/remove-background
+```
+
+#### 3. Docker / VPS
+
+```bash
+docker compose up --build
+```
+
+The default compose file binds only to:
+
+```text
+127.0.0.1:7860
+```
+
+For public access, place it behind Nginx/Caddy with authentication. Models are mounted into the container by `docker-compose.yml`:
+
+```text
+./models:/app/models:ro
+```
+
+### Portable Offline Build
+
+```bash
+python scripts/build_portable.py --version 1.0.1
+```
+
+Output:
+
+```text
+dist/release/QuestCut-AI-Portable-v1.0.1.zip
+```
+
+The zip includes `QuestCut-AI.exe` and `models/`, so users can unzip and run offline.
+
+### Model Files
+
+Large ONNX binaries are intentionally excluded from Git. Download them and place them at:
 
 ```text
 models/rembg/birefnet-general.onnx
@@ -65,24 +214,16 @@ models/rembg/birefnet-portrait.onnx
 models/modnet/modnet.onnx
 ```
 
----
+Source URLs, sizes, MD5, and SHA256 checksums are documented in:
 
-## English
-
-QuestCut-AI is a Python / PySide6 desktop application for AI-powered background removal. It supports single-image and batch processing, transparent PNG quick save, background/shadow/edge/position editing, and runtime language switching between English and Simplified Chinese.
-
-### Features
-
-- AI background removal with BiRefNet General, BiRefNet Portrait, and MODNet portrait matting.
-- Batch workflow with persistent item state, retry for failed items, and batch export.
-- Editing tools for solid/gradient/image backgrounds, shadows, edge refinement, smart crop, undo, and redo.
-- GPU acceleration through ONNX Runtime CUDA with automatic CPU fallback.
-- Bilingual UI: English and Simplified Chinese.
+```text
+models/MODEL_SOURCES.md
+```
 
 ### Project Structure
 
 ```text
-run.py                  # Application launcher
+run.py                  # Desktop application launcher
 src/core/               # Model manager, GPU helpers, remover, portrait mode
 src/services/           # Shared cutout service for desktop/Web/Docker
 src/web/                # FastAPI local Web UI
@@ -95,67 +236,16 @@ tests/                  # Unit and UI smoke tests
 models/MODEL_SOURCES.md # Model source URLs, sizes, and checksums
 ```
 
-### Install and Run
-
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python run.py
-```
-
 ### Tests
 
 ```bash
-python3 -m py_compile run.py $(find src -name '*.py') tests/*.py scripts/smoke_checks.py
+python3 -m py_compile run.py $(find src -name '*.py') tests/*.py scripts/*.py
 .venv\Scripts\python.exe -m unittest discover -s tests -v
 .venv\Scripts\python.exe scripts\smoke_checks.py
 ```
 
-### Model Files
+### Troubleshooting
 
-Large ONNX model binaries are intentionally excluded from Git. See the source URLs, sizes, MD5, and SHA256 checksums in:
-
-```text
-models/MODEL_SOURCES.md
-```
-
-For an offline build, place the model files at:
-
-```text
-models/rembg/birefnet-general.onnx
-models/rembg/birefnet-portrait.onnx
-models/modnet/modnet.onnx
-```
-
-### Packaging
-
-The Windows installer script is `install_script.iss`. Build `QuestCut-AI.exe` first, ensure `models/` exists beside the build input, then compile the installer with Inno Setup.
-
----
-
-## Distribution Roadmap / 分发路线
-
-QuestCut-AI is designed to support three delivery modes from the same inference core:
-
-1. **Portable desktop build / 免安装桌面版**
-   - Build command: `python scripts/build_portable.py --version 1.0.1`
-   - Output: `dist/release/QuestCut-AI-Portable-v1.0.1.zip`
-   - The zip includes `QuestCut-AI.exe` and `models/`, so users can unzip and run offline.
-
-2. **Local Web UI / 本地网页 UI**
-   - Run command: `python scripts/run_web.py --host 127.0.0.1 --port 7860`
-   - Open `http://127.0.0.1:7860` in a browser. The FastAPI backend reuses `src/services/cutout_service.py`.
-   - API endpoints: `GET /health`, `GET /api/models`, `POST /api/remove-background`.
-
-3. **Docker / VPS deployment / Docker 部署**
-   - Run command: `docker compose up --build`
-   - Mount local models into `/app/models` with the provided `docker-compose.yml`.
-   - Safe default binds to `127.0.0.1:7860`; expose publicly only behind Nginx/Caddy auth.
-   - Set `QUESTCUT_MAX_UPLOAD_MB` to control upload limits. Use a large-memory VPS; GPU hosts also need NVIDIA Container Toolkit.
-
-Current shared inference boundary:
-
-```text
-src/services/cutout_service.py
-```
+- **Stuck at 0%**: usually caused by missing model files or a wrong model path. Check the `models/` layout above.
+- **CUBLAS/CUDA GPU errors**: the app falls back to CPU automatically. For GPU mode, verify the NVIDIA driver, CUDA/cuDNN runtime, and `onnxruntime-gpu`.
+- **Low VPS memory**: BiRefNet is about 928MiB per model. Use a large-memory server, or prefer MODNet / smaller batches on low-end hosts.
