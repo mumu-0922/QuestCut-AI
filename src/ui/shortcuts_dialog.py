@@ -14,8 +14,8 @@ class ShortcutsDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(tr('Keyboard Shortcuts'))
         self.setModal(True)
-        self.setMinimumSize(720, 620)
-        self.resize(760, 660)
+        self.setMinimumSize(900, 560)
+        self.resize(960, 600)
         self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self._setup_ui()
@@ -40,7 +40,7 @@ class ShortcutsDialog(QDialog):
         ''')
         container_layout = QVBoxLayout(container)
         container_layout.setContentsMargins(34, 30, 34, 28)
-        container_layout.setSpacing(18)
+        container_layout.setSpacing(16)
 
         header_layout = QHBoxLayout()
         title = QLabel(tr('Keyboard Shortcuts'))
@@ -69,32 +69,47 @@ class ShortcutsDialog(QDialog):
         header_layout.addWidget(close_btn)
         container_layout.addLayout(header_layout)
 
-        sections = [
-            (tr('File'), [
-                ('Ctrl+O', tr('Open image')),
-                ('Ctrl+S', tr('Save image')),
-                ('Ctrl+Shift+S', tr('Save as...')),
-            ]),
-            (tr('View'), [
-                ('Space', tr('Toggle original/result')),
-                ('C', tr('Enable comparison slider')),
-                ('+ / -', tr('Zoom in/out')),
-                ('0', tr('Fit to view')),
-                ('1', tr('Zoom to 100%')),
-            ]),
-            (tr('Edit'), [
-                ('Ctrl+Z', tr('Undo')),
-                ('Ctrl+Y', tr('Redo')),
-                ('[ / ]', tr('Decrease/increase brush size')),
-            ]),
-            (tr('Tools'), [
-                ('B', tr('Brush tool')),
-                ('H', tr('Pan/hand tool')),
-            ]),
+        columns = [
+            [
+                (tr('File'), [
+                    ('Ctrl+O', tr('Open image')),
+                    ('Ctrl+S', tr('Save image')),
+                    ('Ctrl+Shift+S', tr('Save as...')),
+                ]),
+                (tr('Edit'), [
+                    ('Ctrl+Z', tr('Undo')),
+                    ('Ctrl+Y', tr('Redo')),
+                    ('[ / ]', tr('Decrease/increase brush size')),
+                ]),
+            ],
+            [
+                (tr('View'), [
+                    ('Space', tr('Toggle original/result')),
+                    ('C', tr('Enable comparison slider')),
+                    ('+ / -', tr('Zoom in/out')),
+                    ('0', tr('Fit to view')),
+                    ('1', tr('Zoom to 100%')),
+                ]),
+                (tr('Tools'), [
+                    ('B', tr('Brush tool')),
+                    ('H', tr('Pan/hand tool')),
+                ]),
+            ],
         ]
-        for section_title, shortcuts in sections:
-            section = self._create_section(section_title, shortcuts)
-            container_layout.addWidget(section)
+        columns_widget = QWidget()
+        columns_layout = QHBoxLayout(columns_widget)
+        columns_layout.setContentsMargins(0, 0, 0, 0)
+        columns_layout.setSpacing(22)
+        for column_sections in columns:
+            column = QWidget()
+            column_layout = QVBoxLayout(column)
+            column_layout.setContentsMargins(0, 0, 0, 0)
+            column_layout.setSpacing(16)
+            for section_title, shortcuts in column_sections:
+                column_layout.addWidget(self._create_section(section_title, shortcuts))
+            column_layout.addStretch(1)
+            columns_layout.addWidget(column, 1)
+        container_layout.addWidget(columns_widget, 1)
 
         hint = QLabel(tr('Press Esc or ? to close'))
         hint.setStyleSheet('color: #606065; font-size: 13px; padding-top: 4px;')
@@ -110,10 +125,10 @@ class ShortcutsDialog(QDialog):
         layout.setSpacing(8)
 
         title_label = QLabel(title)
-        title_label.setMinimumHeight(28)
+        title_label.setFixedHeight(34)
         title_label.setStyleSheet('''
             color: #6366f1;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: bold;
             padding: 2px 6px;
             border: 1px solid #3a3a40;
@@ -128,7 +143,7 @@ class ShortcutsDialog(QDialog):
             row_layout.setSpacing(12)
 
             key_label = QLabel(key)
-            key_label.setFixedSize(150, 32)
+            key_label.setFixedSize(142, 38)
             key_label.setAlignment(Qt.AlignCenter)
             key_label.setStyleSheet('''
                 background-color: #2a2a2f;
@@ -136,19 +151,19 @@ class ShortcutsDialog(QDialog):
                 border-radius: 5px;
                 color: #ffffff;
                 font-family: Consolas, Monaco, monospace;
-                font-size: 14px;
+                font-size: 15px;
                 font-weight: 600;
             ''')
             row_layout.addWidget(key_label)
 
             desc_label = QLabel(description)
-            desc_label.setMinimumHeight(32)
+            desc_label.setFixedHeight(38)
             desc_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
             desc_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             desc_label.setStyleSheet('''
                 color: #c7c7d1;
-                font-size: 15px;
-                padding: 4px 8px;
+                font-size: 16px;
+                padding: 5px 10px;
                 border: 1px solid #3a3a40;
                 border-radius: 2px;
             ''')

@@ -83,12 +83,15 @@ class ControlPanelLayoutTest(unittest.TestCase):
     def test_shortcuts_dialog_has_readable_fixed_layout(self):
         dialog = ShortcutsDialog()
         try:
-            self.assertGreaterEqual(dialog.minimumWidth(), 720)
-            self.assertGreaterEqual(dialog.minimumHeight(), 620)
+            self.assertGreaterEqual(dialog.minimumWidth(), 900)
+            self.assertGreaterEqual(dialog.minimumHeight(), 560)
             key_labels = [label for label in dialog.findChildren(QLabel) if label.text() == 'Ctrl+O']
             self.assertTrue(key_labels)
-            self.assertEqual(key_labels[0].width(), 150)
-            self.assertGreaterEqual(key_labels[0].height(), 32)
+            self.assertEqual(key_labels[0].width(), 142)
+            self.assertGreaterEqual(key_labels[0].height(), 38)
+            space_labels = [label for label in dialog.findChildren(QLabel) if label.text() == 'Space']
+            self.assertTrue(space_labels)
+            self.assertGreaterEqual(space_labels[0].height(), 38)
         finally:
             dialog.close()
 
