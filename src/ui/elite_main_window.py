@@ -17,6 +17,7 @@ from ..core.background_remover import BackgroundRemover
 from ..utils.constants import MODEL_CONFIG
 from ..utils.i18n import set_language, tr, tr_model_display
 from .loading_overlay import LoadingOverlay
+from .shortcuts_dialog import ShortcutsDialog
 from ..core.portrait_mode import PortraitMode
 from ..processing.mask_ops import MaskOperations, BrushStroke, BrushMode
 from ..app.history_manager import HistoryManager, HistoryState
@@ -379,6 +380,13 @@ class EliteMainWindow(QMainWindow):
         space_shortcut.setContext(Qt.WidgetShortcut)
         c_shortcut = QShortcut(QKeySequence('C'), self, self._toggle_compare)
         c_shortcut.setContext(Qt.WidgetShortcut)
+        help_shortcut = QShortcut(QKeySequence('?'), self, self._show_shortcuts)
+        help_shortcut.setContext(Qt.WindowShortcut)
+
+    def _show_shortcuts(self):
+        '''Show keyboard shortcuts help dialog.'''
+        ShortcutsDialog.show_shortcuts(self)
+
     def closeEvent(self, event):
         """Handle application close with graceful shutdown."""
         try:

@@ -1,5 +1,6 @@
 import os
 import unittest
+import unittest.mock
 
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
@@ -71,6 +72,15 @@ class EditorSmokeTest(unittest.TestCase):
             self.assertAlmostEqual(redone['scale'], 1.5)
             self.assertEqual(redone['x'], 12)
             self.assertEqual(redone['y'], -8)
+        finally:
+            window.close()
+
+    def test_question_mark_shortcut_opens_shortcuts_dialog(self):
+        window = EliteMainWindow()
+        try:
+            with unittest.mock.patch('src.ui.elite_main_window.ShortcutsDialog.show_shortcuts') as show_shortcuts:
+                window._show_shortcuts()
+                show_shortcuts.assert_called_once_with(window)
         finally:
             window.close()
 
